@@ -45,51 +45,42 @@ for ii = 1 :option.MAX_ITER
     labels(2*N0_l+N1_l+1:end, 1) = y_single_label;
     
     %for kk = 1:option.opt_MAX_PASS
-    for kk = 1:10
+    for kk = 1:50
         perm_index = randperm(total_num);
         % only get 80% of index for opt
         perm_index = perm_index(1:round(total_num*0.8));
         for index = 1:round(total_num*0.8)
             current_index =  perm_index(index);
-            if current_index <= N0_l
-                x = x_pair(current_index,:);
-                x_whole = [x'; zeros(D2,1)];
-                y = pair_label(current_index);
-            else if current_index <= N0_l + N1_l
-                    x = x_single(current_index - N0_l,:);
-                    x_whole = [x'; zeros(D2,1)];
-                    y = x_single_label(current_index - N0_l);
-                else if current_index <= 2*N0_l + N1_l
-                        x = y_pair(current_index - N0_l - N1_l,:);
-                        x_whole = [zeros(D1,1); x'];
-                        y = pair_label(current_index - N0_l - N1_l);
-                    else
-                        x = y_single(current_index - 2*N0_l - N1_l,:);
-                        x_whole = [zeros(D1,1); x'];
-                        y = y_single_label(current_index - 2*N0_l - N1_l);
-                    end
-                end
-            end
-            
-            
-            assert(y == labels(current_index));
-            assert(all(x_whole == samples(current_index, :)'))
-            
+            x_whole = samples(current_index, :)';
+            y = labels(current_index);   
             % get eta
             c = option.rho/option.lambda;
             q = z - u;
-            eta = option.lambda*c*(1+q'*x_whole*y)/((c-1)*x_whole'*x_whole) - option.lambda*(w'*x_whole*y)/(x_whole'*x_whole) + alpha(current_index)*y;
+            eta = option.lambda*c*(1+q'*x_whole*y)/((c-1)*(x_whole'*x_whole)) - option.lambda*(w'*x_whole*y)/(x_whole'*x_whole) + alpha(current_index)*y;
             % get delta_alpha
             delta_alpha = y*max(0,min(1,eta)) - alpha(current_index);
             % update alpha and w
             alpha(current_index) = alpha(current_index) + delta_alpha;
             w = w + 1/option.lambda * delta_alpha * x_whole;
-            
-            %watch obj value descreasing or not
-            %obj_value = 
         end
+        
+        %watch obj value descreasing or not
+        %obj_value = loss + regularizer + residual
+        loss = 0;
+        count = 0;
+        for index = 1:total_num
+            x = samples(index, :)';
+            y = labels(index);
+            p = w'*x*y;
+            loss = loss + max(0, 1-p);
+            if p > 0
+                count = count + 1;
+            end
+        end
+        r = w-z+u;
+        obj_value = loss + 0.5 * option.lambda * (w'*w) + 0.5 * option.rho * (r'*r);
+        disp(['sdca pass: ', num2str(kk), ', primal obj value: ', num2str(obj_value), '(loss ', num2str(100*loss/obj_value), '%), accu: ', num2str(count/total_num)]);
     end
-    %disp(['w norm: ', num2str(norm(w)), ' non-zero: ', num2str(sum(w~=0))]);
     disp(['sdca time: ', num2str(toc)]);
     %% deal with constraints
     % z-update
@@ -97,7 +88,7 @@ for ii = 1 :option.MAX_ITER
     temp = w + u; % project temp onto constraint
     for kk = 1:option.stat_MAX_ITER
         w1 = temp(1:D1); w2 = temp(D1+1:end);
-        % construct cube for all the paired data  %include unlabeled?
+        % construct cube for all the paired data
         temp_m1 = repmat(w1,1,N01) .* x_pair';
         temp_m2 = repmat(w2,1,N01) .* y_pair';
         temp = zeros(D1,D2);
