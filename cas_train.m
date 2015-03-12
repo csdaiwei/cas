@@ -11,7 +11,7 @@ function [output] = cas_train(x_pair, y_pair, pair_label, x_single, x_single_lab
 [N01, D1] = size(x_pair);  [N02, D2] = size(y_pair);
 assert(N01 == N02); % num of paired instance should be the same
 N0 = N01;
-N0_l = length(pair_label); % N0_u = N01 - N0_l
+N0_l = length(pair_label); % N0_u = N01 - N0_
 [N1, D11] = size(x_single); [N2, D22] = size(y_single);
 assert(D11 == D1 && D22 == D2);
 N1_l = length(x_single_label); % N1_u = N1 - N1_l;
@@ -27,8 +27,8 @@ for ii = 1 :option.MAX_ITER
     % w-update in a SGD manner
     % data       Modality1       Modality2
     %           N0_l + N1_l  +  N0_l + N2_l
-    disp(['Iter: ', num2str(ii)]);
     tic;
+    disp(['Iter: ', num2str(ii)]);
     total_num = N0_l*2 + N1_l + N2_l;
     alpha = zeros(total_num,1);
     
@@ -84,6 +84,7 @@ for ii = 1 :option.MAX_ITER
             '(loss ', num2str(100*loss/obj_value), '%), accu: ', num2str(count/total_num)]);
     end
     disp(['sdca time: ', num2str(toc)]);
+    
     %% deal with constraints
     % z-update
     
@@ -204,7 +205,7 @@ for ii = 1 :option.MAX_ITER
     
     %% u-update
     res = w - z;    %residual
-    u = u + res;  
+    u = u + res;    %running sum of residual
     
     disp(['constraints time: ', num2str(toc)]);
     
@@ -213,7 +214,7 @@ for ii = 1 :option.MAX_ITER
     disp(['u norm: ', num2str(norm(u)), ' non-zero: ', num2str(sum(u~=0))]);
     disp(['r norm: ', num2str(norm(res)), ' non-zero: ', num2str(sum(res~=0))]);
     
-    if(norm(res) == 0)
+    if(norm(res) == 0) %<10e-6?
         %break;
     end
     
