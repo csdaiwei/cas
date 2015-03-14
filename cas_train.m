@@ -96,10 +96,10 @@ for ii = 1 :option.MAX_ITER
     cstt2_count = 0;
     cstt3_count = 0;
     for index = N0_l+1:N0
-        if (x_pair(index, 1:end)*z(1:D1))*(y_pair(index, 1:end)*z(D1+1:end)) >= 0
+        if (x_pair(index, 1:end)*z(1:D1))*(y_pair(index, 1:end)*z(D1+1:end)) > 0
             cstt2_count = cstt2_count + 1;
         end
-        if (x_pair(index, 1:end)*w(1:D1))*(y_pair(index, 1:end)*w(D1+1:end)) >= 0
+        if (x_pair(index, 1:end)*w(1:D1))*(y_pair(index, 1:end)*w(D1+1:end)) > 0
             cstt3_count = cstt3_count + 1;
         end
     end
@@ -182,7 +182,7 @@ for ii = 1 :option.MAX_ITER
             end
         end
         for index = N0_l+1:N0
-            if (x_pair(index, 1:end)*w1)*(y_pair(index, 1:end)*w2) >= 0
+            if (x_pair(index, 1:end)*w1)*(y_pair(index, 1:end)*w2) > 0
             %if (x_pair(index, 1:end)*z(1:D1))*(y_pair(index, 1:end)*z(D1+1:end)) >= 0
                 cstt_count = cstt_count + 1;
             end
