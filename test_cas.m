@@ -34,14 +34,15 @@ train_data = data(~(splitvector == 3),:);
 test_data = data(splitvector == 3,:);
 train_label = label(~(splitvector == 3));
 test_label = label(splitvector == 3);
-clear data
+%clear data
+
 % normalization for train and test data, use range of train data to
 % normalize test data
 min_train = min(train_data); max_train = max(train_data);
 train_data = train_data - ones(size(train_data,1),1)*min_train;
-train_data = train_data./(ones(size(train_data,1),1)*max_train);
+train_data = train_data./(ones(size(train_data,1),1)*(max_train-min_train));
 test_data = test_data - ones(size(test_data,1),1)*min_train;
-test_data = test_data./(ones(size(test_data,1),1)*max_train);
+test_data = test_data./(ones(size(test_data,1),1)*(max_train-min_train));
 
 % get the aligned data
 align_rate = option.align_rate;
