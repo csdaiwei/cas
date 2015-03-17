@@ -16,10 +16,29 @@ N0_l = length(pair_label); % N0_u = N01 - N0_
 assert(D11 == D1 && D22 == D2);
 N1_l = length(x_single_label); % N1_u = N1 - N1_l;
 N2_l = length(y_single_label); % N2_u = N2 - N2_l;
+total_num = N0_l*2 + N1_l + N2_l;
 
 w = zeros(D1 + D2, 1);
 z = zeros(D1 + D2, 1);
 u = zeros(D1 + D2, 1);
+
+
+%construct full samples and labels
+samples = zeros(total_num, D1+D2);
+samples(1:N0_l, 1:D1) = x_pair(1:N0_l, 1:D1);
+samples(N0_l+1:N0_l+N1_l, 1:D1) = x_single(1:N1_l, 1:D1);
+samples(N0_l+N1_l+1:2*N0_l+N1_l, D1+1:end) = y_pair(1:N0_l, 1:D2);
+samples(2*N0_l+N1_l+1:end, D1+1:end) = y_single(1:N2_l, 1:D2);
+    
+labels = zeros(total_num, 1);
+labels(1:N0_l, 1) = pair_label;
+labels(N0_l+1:N0_l+N1_l, 1) = x_single_label;
+labels(N0_l+N1_l+1:2*N0_l+N1_l, 1) = pair_label;
+labels(2*N0_l+N1_l+1:end, 1) = y_single_label;
+    
+
+w10 = zeros(D1+D2, 1);
+
 
 %% ADMM frame
 for ii = 1 :option.MAX_ITER
@@ -29,21 +48,27 @@ for ii = 1 :option.MAX_ITER
     %           N0_l + N1_l  +  N0_l + N2_l
     tic;
     disp(['Iter: ', num2str(ii)]);
-    total_num = N0_l*2 + N1_l + N2_l;
     alpha = zeros(total_num,1);
     
-    %construct full samples and labels
-    samples = zeros(total_num, D1+D2);
-    samples(1:N0_l, 1:D1) = x_pair(1:N0_l, 1:D1);
-    samples(N0_l+1:N0_l+N1_l, 1:D1) = x_single(1:N1_l, 1:D1);
-    samples(N0_l+N1_l+1:2*N0_l+N1_l, D1+1:end) = y_pair(1:N0_l, 1:D2);
-    samples(2*N0_l+N1_l+1:end, D1+1:end) = y_single(1:N2_l, 1:D2);
+    assert(all(w10 == w));
     
-    labels = zeros(total_num, 1);
-    labels(1:N0_l, 1) = pair_label;
-    labels(N0_l+1:N0_l+N1_l, 1) = x_single_label;
-    labels(N0_l+N1_l+1:2*N0_l+N1_l, 1) = pair_label;
-    labels(2*N0_l+N1_l+1:end, 1) = y_single_label;
+    loss = 0;
+    count = 0;
+    for index2 = 1:total_num
+        x = samples(index2, :)';
+        y = labels(index2);
+        p = w'*x*y;
+        loss = loss + max(0, 1-p);
+        if p > 0
+            count = count + 1;
+        elseif p == 0
+            count = count + randi(2)-1;
+        end
+    end
+    r = w-z+u;
+    obj_value = loss + 0.5 * option.lambda * (w'*w) + 0.5 * option.rho * (r'*r);
+    disp(['before sdca, obj value: ', num2str(obj_value), ...,
+        ' accu: ', num2str(count/total_num)]);
     
     for kk = 1:option.opt_MAX_PASS
         perm_index = randperm(total_num);
@@ -63,27 +88,53 @@ for ii = 1 :option.MAX_ITER
             % update alpha and w
             alpha(current_index) = alpha(current_index) + delta_alpha;
             w = w + 1/option.lambda * delta_alpha * x_whole;
+            
+            check_indice = [1:10,20:10:100, 200:1000:1000, 2000:1000:round(total_num * 0.8), round(total_num * 0.8)];
+            if(kk==1 && ismember(index, check_indice))
+                %watch obj value descreasing or not
+                %obj_value = loss + regularizer + residual
+                loss = 0;
+                count = 0;
+                for index2 = 1:total_num
+                    x = samples(index2, :)';
+                    y = labels(index2);
+                    p = w'*x*y;
+                    loss = loss + max(0, 1-p);
+                    if p > 0
+                        count = count + 1;
+                    elseif p == 0
+                        count = count + randi(2)-1;
+                    end
+                end
+                r = w-z+u;
+                obj_value = loss + 0.5 * option.lambda * (w'*w) + 0.5 * option.rho * (r'*r);
+                disp(['during sdca pass 1, iter: ', num2str(index), ', obj value: ', num2str(obj_value), ...,
+                    ' accu: ', num2str(count/total_num)]);
+            end
         end
         
-        %watch obj value descreasing or not
-        %obj_value = loss + regularizer + residual
         loss = 0;
         count = 0;
-        for index = 1:total_num
-            x = samples(index, :)';
-            y = labels(index);
+        for index2 = 1:total_num
+            x = samples(index2, :)';
+            y = labels(index2);
             p = w'*x*y;
             loss = loss + max(0, 1-p);
             if p > 0
                 count = count + 1;
+            elseif p == 0
+                count = count + randi(2)-1;
             end
         end
         r = w-z+u;
         obj_value = loss + 0.5 * option.lambda * (w'*w) + 0.5 * option.rho * (r'*r);
-        disp(['sdca pass: ', num2str(kk), ', obj value: ', num2str(obj_value), ...,
-            '(loss ', num2str(100*loss/obj_value), '%), accu: ', num2str(count/total_num)]);
+        disp(['after sdca pass: ', num2str(kk), ', obj value: ', num2str(obj_value), ...,
+            ' accu: ', num2str(count/total_num)]);
+        
+        
     end
     disp(['sdca time: ', num2str(toc)]);
+    w10 = w;
     
     %% deal with constraints
     % z-update
@@ -166,12 +217,13 @@ for ii = 1 :option.MAX_ITER
                 w1(max_index_row) = 0;
             end
         end
+        z = [w1;w2];
+        
         
         %check z-update work or not
         loss = 0;
         count = 0;          %count for samples correctly classified
         cstt_count = 0;     %count for samples obey the constraint using new w1 and w2
-        %cstt2_count = 0;   %count for samples obey the constraint using w
         for index = 1:total_num
             x = samples(index, :)';
             y = labels(index);
@@ -179,6 +231,8 @@ for ii = 1 :option.MAX_ITER
             loss = loss + max(0, 1-p);
             if p > 0
                 count = count + 1;
+            elseif p == 0
+                count = count + randi(2)-1;
             end
         end
         for index = N0_l+1:N0
@@ -190,16 +244,14 @@ for ii = 1 :option.MAX_ITER
         
         
         r = w-[w1;w2]+u;
-        obj_value = loss + 0.5 * option.lambda * ([w1;w2]'*[w1;w2]) + 0.5 * option.rho * (r'*r);
+        obj_value = loss + 0.5 * option.lambda * (z'*z) + 0.5 * option.rho * (r'*r);
         disp(['proj pass: ', num2str(kk), ', obj_value: ', num2str(obj_value), ...,
-            '(loss ', num2str(100*loss/obj_value), '%), accu: ', num2str(count/total_num), ...,
+            ' accu: ', num2str(count/total_num), ...,
             ' constraints satisfied: ', num2str(cstt_count), '/', num2str(N0_u)]);
         
         if(cstt_count == N0_u)
             break;
         end
-        
-        z = [w1;w2];
     end
     
     

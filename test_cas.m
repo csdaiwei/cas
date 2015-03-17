@@ -1,5 +1,7 @@
 function [general_info] = test_cas(name, data_index, option)
 %% test_cas.m
+%   preprocess data, cut it into training set and test set
+%   training w using cas_train() and make predictions on test set
 %--------------------------------------------------------------------------
 %% Split data for each modality
 %--------------------------------------------------------------------------
