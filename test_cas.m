@@ -93,8 +93,8 @@ x_single_label = x_single_label(1:floor(length(x_single_label)*option.label_rati
 y_single_label = y_single_label(1:floor(length(y_single_label)*option.label_ratio));
 
 % set parameters for the Algorithm
-option.MAX_ITER = 10;       % the number of iteration of ADMM
-option.opt_MAX_PASS = 20;  % the number of iteration of SDCA 
+option.MAX_ITER = 5;       % the number of iteration of ADMM
+option.opt_MAX_PASS = 10;  % the number of iteration of SDCA 
 option.stat_MAX_ITER = 10;  % the number of iteration of greedy projection
 option.stat_scale = 0;
 option.rho = 0.5;
@@ -105,4 +105,4 @@ w = cas_train(x_pair,y_pair,pair_label,x_single,x_single_label,y_single,y_single
 w1 = w(1:size(x_pair,2)); w2 = w(size(x_pair,2)+1:end);
 x_predict = x_test * w1; y_predict = y_test * w2;
 acc_x = mean((x_predict .* test_label) > 0); acc_y = mean((y_predict .* test_label) > 0);
-disp([acc_x, acc_y]);
+disp(['test accuracy: ', num2str(acc_x), ' ', num2str(acc_y)]);

@@ -37,8 +37,6 @@ labels(N0_l+N1_l+1:2*N0_l+N1_l, 1) = pair_label;
 labels(2*N0_l+N1_l+1:end, 1) = y_single_label;
     
 
-w10 = zeros(D1+D2, 1);
-
 
 %% ADMM frame
 for ii = 1 :option.MAX_ITER
@@ -47,10 +45,8 @@ for ii = 1 :option.MAX_ITER
     % data       Modality1       Modality2
     %           N0_l + N1_l  +  N0_l + N2_l
     tic;
-    disp(['Iter: ', num2str(ii)]);
+    disp(['ADMM Iter: ', num2str(ii)]);
     alpha = zeros(total_num,1);
-    
-    assert(all(w10 == w));
     
     loss = 0;
     count = 0;
@@ -67,8 +63,8 @@ for ii = 1 :option.MAX_ITER
     end
     r = w-z+u;
     obj_value = loss + 0.5 * option.lambda * (w'*w) + 0.5 * option.rho * (r'*r);
-    disp(['before sdca, obj value: ', num2str(obj_value), ...,
-        ' accu: ', num2str(count/total_num)]);
+    disp(['before sdca, loss: ', num2str(loss), ', obj value: ', num2str(obj_value), ...,
+        ', accu: ', num2str(count/total_num)]);
     
     for kk = 1:option.opt_MAX_PASS
         perm_index = randperm(total_num);
@@ -108,8 +104,8 @@ for ii = 1 :option.MAX_ITER
                 end
                 r = w-z+u;
                 obj_value = loss + 0.5 * option.lambda * (w'*w) + 0.5 * option.rho * (r'*r);
-                disp(['during sdca pass 1, iter: ', num2str(index), ', obj value: ', num2str(obj_value), ...,
-                    ' accu: ', num2str(count/total_num)]);
+                disp(['at sdca pass 1, iter: ', num2str(index), ', loss: ', num2str(loss), ' , obj value: '...
+                    , num2str(obj_value), ', accu: ', num2str(count/total_num)]);
             end
         end
         
@@ -128,24 +124,23 @@ for ii = 1 :option.MAX_ITER
         end
         r = w-z+u;
         obj_value = loss + 0.5 * option.lambda * (w'*w) + 0.5 * option.rho * (r'*r);
-        disp(['after sdca pass: ', num2str(kk), ', obj value: ', num2str(obj_value), ...,
-            ' accu: ', num2str(count/total_num)]);
+        disp(['after sdca pass: ', num2str(kk), ', loss: ', num2str(loss), ', obj value: ', num2str(obj_value), ...,
+            ', accu: ', num2str(count/total_num)]);
         
         
     end
     disp(['sdca time: ', num2str(toc)]);
-    w10 = w;
     
     %% deal with constraints
     % z-update
     
     tic;
-    z = w + u; % project temp onto constraint
+    z = w + u; 
     
     N0_u = N0 - N0_l;  %unlabeled paired data
     
-    cstt2_count = 0;
-    cstt3_count = 0;
+    cstt2_count = 0;    %count for samples obey the constraint using z
+    cstt3_count = 0;    %count for samples obey the constraint using w
     for index = N0_l+1:N0
         if (x_pair(index, 1:end)*z(1:D1))*(y_pair(index, 1:end)*z(D1+1:end)) > 0
             cstt2_count = cstt2_count + 1;
@@ -237,7 +232,6 @@ for ii = 1 :option.MAX_ITER
         end
         for index = N0_l+1:N0
             if (x_pair(index, 1:end)*w1)*(y_pair(index, 1:end)*w2) > 0
-            %if (x_pair(index, 1:end)*z(1:D1))*(y_pair(index, 1:end)*z(D1+1:end)) >= 0
                 cstt_count = cstt_count + 1;
             end
         end
@@ -245,7 +239,7 @@ for ii = 1 :option.MAX_ITER
         
         r = w-[w1;w2]+u;
         obj_value = loss + 0.5 * option.lambda * (z'*z) + 0.5 * option.rho * (r'*r);
-        disp(['proj pass: ', num2str(kk), ', obj_value: ', num2str(obj_value), ...,
+        disp(['proj pass: ', num2str(kk), ' loss: ', num2str(loss) ', obj_value: ', num2str(obj_value), ...,
             ' accu: ', num2str(count/total_num), ...,
             ' constraints satisfied: ', num2str(cstt_count), '/', num2str(N0_u)]);
         
