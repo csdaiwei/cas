@@ -49,22 +49,22 @@ for ii = 1 :option.MAX_ITER
     alpha = zeros(total_num,1);
     
     loss = 0;
-    count = 0;
+    cnt = 0;
     for index2 = 1:total_num
         x = samples(index2, :)';
         y = labels(index2);
         p = w'*x*y;
         loss = loss + max(0, 1-p);
         if p > 0
-            count = count + 1;
+            cnt = cnt + 1;
         elseif p == 0
-            count = count + randi(2)-1;
+            cnt = cnt + randi(2)-1;
         end
     end
     r = w-z+u;
     obj_value = loss + 0.5 * option.lambda * (w'*w) + 0.5 * option.rho * (r'*r);
     disp(['before sdca, loss: ', num2str(loss), ', obj value: ', num2str(obj_value), ...,
-        ', accu: ', num2str(count/total_num)]);
+        ', accu: ', num2str(cnt/total_num)]);
     
     for kk = 1:option.opt_MAX_PASS
         perm_index = randperm(total_num);
@@ -85,47 +85,48 @@ for ii = 1 :option.MAX_ITER
             alpha(current_index) = alpha(current_index) + delta_alpha;
             w = w + 1/option.lambda * delta_alpha * x_whole;
             
-            check_indice = [1:10,20:10:100, 200:1000:1000, 2000:1000:round(total_num * 0.8), round(total_num * 0.8)];
+            %check_indice = [1:10,20:10:100, 200:1000:1000, 2000:1000:round(total_num * 0.8), round(total_num * 0.8)];
+            check_indice = [];
             if(kk==1 && ismember(index, check_indice))
                 %watch obj value descreasing or not
                 %obj_value = loss + regularizer + residual
                 loss = 0;
-                count = 0;
+                cnt = 0;
                 for index2 = 1:total_num
                     x = samples(index2, :)';
                     y = labels(index2);
                     p = w'*x*y;
                     loss = loss + max(0, 1-p);
                     if p > 0
-                        count = count + 1;
+                        cnt = cnt + 1;
                     elseif p == 0
-                        count = count + randi(2)-1;
+                        cnt = cnt + randi(2)-1;
                     end
                 end
                 r = w-z+u;
                 obj_value = loss + 0.5 * option.lambda * (w'*w) + 0.5 * option.rho * (r'*r);
                 disp(['at sdca pass 1, iter: ', num2str(index), ', loss: ', num2str(loss), ' , obj value: '...
-                    , num2str(obj_value), ', accu: ', num2str(count/total_num)]);
+                    , num2str(obj_value), ', accu: ', num2str(cnt/total_num)]);
             end
         end
         
         loss = 0;
-        count = 0;
+        cnt = 0;
         for index2 = 1:total_num
             x = samples(index2, :)';
             y = labels(index2);
             p = w'*x*y;
             loss = loss + max(0, 1-p);
             if p > 0
-                count = count + 1;
+                cnt = cnt + 1;
             elseif p == 0
-                count = count + randi(2)-1;
+                cnt = cnt + randi(2)-1;
             end
         end
         r = w-z+u;
         obj_value = loss + 0.5 * option.lambda * (w'*w) + 0.5 * option.rho * (r'*r);
         disp(['after sdca pass: ', num2str(kk), ', loss: ', num2str(loss), ', obj value: ', num2str(obj_value), ...,
-            ', accu: ', num2str(count/total_num)]);
+            ', accu: ', num2str(cnt/total_num)]);
         
         
     end
@@ -139,24 +140,22 @@ for ii = 1 :option.MAX_ITER
     
     N0_u = N0 - N0_l;  %unlabeled paired data
     
-    cstt2_count = 0;    %count for samples obey the constraint using z
-    cstt3_count = 0;    %count for samples obey the constraint using w
+    cstt_count = 0;    %count for samples obey the constraint using z
+    cstt2_count = 0;    %count for samples obey the constraint using w
     for index = N0_l+1:N0
         if (x_pair(index, 1:end)*z(1:D1))*(y_pair(index, 1:end)*z(D1+1:end)) > 0
-            cstt2_count = cstt2_count + 1;
+            cstt_count = cstt_count + 1;
         end
         if (x_pair(index, 1:end)*w(1:D1))*(y_pair(index, 1:end)*w(D1+1:end)) > 0
-            cstt3_count = cstt3_count + 1;
+            cstt2_count = cstt2_count + 1;
         end
     end
-    disp(['before z-update, constrains(w/z/all) ', num2str(cstt3_count), '/', num2str(cstt2_count),'/', num2str(N0_u)]);
+    disp(['before z-update, constrains(w/z/all) ', num2str(cstt2_count), '/', num2str(cstt_count),'/', num2str(N0_u)]);
     
     w1 = z(1:D1); w2 = z(D1+1:end);
     for kk = 1:option.stat_MAX_ITER
         
-        %break;
-        
-        if(cstt2_count == N0_u)
+        if(cstt_count == N0_u)
             break; 
         end
         
@@ -213,11 +212,11 @@ for ii = 1 :option.MAX_ITER
             end
         end
         z = [w1;w2];
-        
-        
+         
+
         %check z-update work or not
         loss = 0;
-        count = 0;          %count for samples correctly classified
+        cnt = 0;          %count for samples correctly classified
         cstt_count = 0;     %count for samples obey the constraint using new w1 and w2
         for index = 1:total_num
             x = samples(index, :)';
@@ -225,9 +224,9 @@ for ii = 1 :option.MAX_ITER
             p = [w1;w2]'*x*y;
             loss = loss + max(0, 1-p);
             if p > 0
-                count = count + 1;
+                cnt = cnt + 1;
             elseif p == 0
-                count = count + randi(2)-1;
+                cnt = cnt + randi(2)-1;
             end
         end
         for index = N0_l+1:N0
@@ -240,12 +239,10 @@ for ii = 1 :option.MAX_ITER
         r = w-[w1;w2]+u;
         obj_value = loss + 0.5 * option.lambda * (z'*z) + 0.5 * option.rho * (r'*r);
         disp(['proj pass: ', num2str(kk), ' loss: ', num2str(loss) ', obj_value: ', num2str(obj_value), ...,
-            ' accu: ', num2str(count/total_num), ...,
+            ' accu: ', num2str(cnt/total_num), ...,
             ' constraints satisfied: ', num2str(cstt_count), '/', num2str(N0_u)]);
         
-        if(cstt_count == N0_u)
-            break;
-        end
+
     end
     
     
@@ -261,7 +258,7 @@ for ii = 1 :option.MAX_ITER
     disp(['r norm: ', num2str(norm(res)), ' non-zero: ', num2str(sum(res~=0))]);
     
     if(norm(res) == 0) %<10e-6?
-        %break;
+        break;
     end
     
 end % end of ADMM
