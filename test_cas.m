@@ -80,7 +80,7 @@ clear train_align_data train_partial_data train_partial_label test_data
 % construct unlabel data
 % for aligned data, permute for two modality, and for single data, permute
 % data for each modality and then split into label and unlabel ones
-rand('state', data_index);
+rand('state', 2);
 align_perm = randperm(length(train_align_label));
 x_pair = x_pair(align_perm,:); y_pair = y_pair(align_perm,:); 
 train_align_label = train_align_label(align_perm);
@@ -93,9 +93,9 @@ x_single_label = x_single_label(1:floor(length(x_single_label)*option.label_rati
 y_single_label = y_single_label(1:floor(length(y_single_label)*option.label_ratio));
 
 % set parameters for the Algorithm
-option.MAX_ITER = 5;       % the number of iteration of ADMM
+option.MAX_ITER = 10;       % the number of iteration of ADMM
 option.opt_MAX_PASS = 10;  % the number of iteration of SDCA 
-option.stat_MAX_ITER = 10;  % the number of iteration of greedy projection
+option.stat_MAX_ITER = 0;  % the number of iteration of greedy projection
 option.stat_scale = 0;
 option.rho = 0.5;
 option.lambda = 0.1;
